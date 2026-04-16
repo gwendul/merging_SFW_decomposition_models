@@ -36,3 +36,19 @@ single_parameter_sensitivity_millennial(
 # 8x more stabilization of root litter than shoot litter
 # 61.78 -1.21*rootherbary
 # consumption is 20% of the total NPP is consumed by root herbivores
+
+
+source("R/scenario_sensitivity_millennial.R")
+
+pm = expand.grid(a_root_herb = parms$a_root_herb*seq(0.5, 1.5, length = 5),
+                  TBHmax = parms$TBHmax*seq(0.5, 1.5, length = 5))
+
+scenario_sensitivity_millennial(pm,
+                                habitat_type = "field")
+
+
+pm = cbind(a_root_herb = parms$a_root_herb*seq(0.5, 1.5, length = 5),
+                 TBHmax = parms$TBHmax*seq(0.5, 1.5, length = 5))
+
+scenario_sensitivity_millennial(pm,
+                                habitat_type = "field")
