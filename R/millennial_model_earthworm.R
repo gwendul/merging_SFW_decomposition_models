@@ -207,7 +207,7 @@ millennial_model_earthworm <- function(time, state, parms){
     # -------------------------
     
     # Eq. 1
-    dP <- p_i * Fi_t + p_a * F_a - F_pa - F_pl + d_earthworm*Earthworm - c_earthworm_soil*Earthworm*P
+    dP <- p_i * Fi_t + p_a * F_a - F_pa - F_pl + d_earthworm*Earthworm^2 - c_earthworm_soil*Earthworm*P
     
     # Eq. 7
     dL <- Fi_t * (1 - p_i) - F_l + F_pl - F_lm - F_lb + (1 - p_b) * F_bm + F_ld + prop_feaces_earthworm_LMWC*((1-a_earthworm)*(Fed_earthworm_litter + Fed_earthworm_om) + (1-a_earthworm_soil)*Fed_earthworm_soil) - c_earthworm_soil*Earthworm*L
@@ -224,7 +224,7 @@ millennial_model_earthworm <- function(time, state, parms){
     # Earthworms:
     dEarthworm <- 
       p_earthworm*(a_earthworm*(Fed_earthworm_litter + Fed_earthworm_om) + a_earthworm_soil*Fed_earthworm_soil) - 
-      d_earthworm*Earthworm - 
+      d_earthworm*Earthworm^2 - 
       E_earthworm*Earthworm
     
     # ---------------------------
