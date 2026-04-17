@@ -16,7 +16,7 @@ source("R/derive_millennial_parms.R")
 source("R/init_millennial_state.R")
 source("R/plot_ode_out.R")
 
-parms  <- yaml::read_yaml("config/common.yml")
+parms  <- yaml::read_yaml("config/common_detritivore.yml")
 parms  <- modifyList(parms, yaml::read_yaml("config/tree_monomolecular.yml"))
 parms  <- modifyList(parms, yaml::read_yaml("config/millennial.yml"))
 parms  <- derive_millennial_parms(parms)

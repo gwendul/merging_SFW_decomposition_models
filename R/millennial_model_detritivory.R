@@ -60,9 +60,9 @@ millennial_model_detritivory <- function(time, state, parms){
     # ----------------------------
     # Fragmentation and physical transfer to organic and mineral soil
     # ----------------------------
-    fragmentation_litter   <- k_frag_litter  * Litter   # -> Organic
+    fragmentation_litter   <- (intercept_det_k_frag_litter + slope_det_k_frag_litter*Detritivore)  * Litter   # -> Organic
     fragmentation_CWD      <- k_frag_CWD     * CWD      # -> Organic
-    fragmentation_organic  <- k_frag_organic * Organic  # -> POM
+    fragmentation_organic  <- (intercept_det_k_frag_organic + slope_det_k_frag_organic*Detritivore) * Organic  # -> POM
     
     # ----------------------------
     # Sorption capacity Qmax (Eq. 11)
