@@ -148,15 +148,15 @@ p <- plot_ode_output(out_full, variable_cols = vars)
 
 # other two scenarios
 p <- p +
-  geom_line(data = to_long(out_full, "Full food web"), 
+  geom_line(data = to_long(out_full, "Root Herbivory"), 
             aes(time, value, color = scenario)) +
-  geom_line(data = to_long(out_noHerbivore, "No predator"),
+  geom_line(data = to_long(out_noHerbivore, "No Herbivores"),
             aes(time, value, color = scenario)) +
-  scale_color_manual(values = c("Full food web" = "black",
+  scale_color_manual(values = c("Root Herbivory" = "black",
                                 "No Herbivores"   = "blue")) +
   labs(color = "Scenario")
 p
-ggsave("outputs/simulations.png",  plot = p,  width = 9.5, height = 6, dpi = 300)
+ggsave("simulations.png",  plot = p,  width = 9.5, height = 6, dpi = 300)
 
 #plot the 100 year simulation scenarios, but 
 # Keep only one day per year (default: day 1)
@@ -164,19 +164,19 @@ keep_yearly <- function(out, day_of_year = 1) {
   out[out[, "time"] %% 365 == day_of_year, ]
 }
 
-p2 <- plot_ode_output(keep_yearly(out_full2), variable_cols = vars)
+p2 <- plot_ode_output(keep_yearly(out_full100), variable_cols = vars)
 
 p2 <- p2 +
-  geom_line(data = to_long(keep_yearly(out_full2),      "Full food web"), aes(time, value, color = scenario)) +
-  geom_line(data = to_long(keep_yearly(out_noPred2),    "No predator"),   aes(time, value, color = scenario)) +
-  geom_line(data = to_long(keep_yearly(out_noPredDet2), "No pred + det"), aes(time, value, color = scenario)) +
-  scale_color_manual(values = c("Full food web" = "black",
-                                "No predator"   = "blue",
-                                "No pred + det" = "lightgreen")) +
+  geom_line(data = to_long(keep_yearly(out_full100), "Root Herbivory"), 
+            aes(time, value, color = scenario)) +
+  geom_line(data = to_long(keep_yearly(out_noHerbivore100), "No Herbivores"),
+            aes(time, value, color = scenario)) +
+  scale_color_manual(values = c("Root Herbivory" = "black",
+                                "No Herbivores"   = "blue")) +
   labs(color = "Scenario")
 p2
 
-#ggsave("outputs/simulations_100yrs.png",  plot = p2,  width = 9.5, height = 6, dpi = 300)
+ggsave("simulations_100yrs.png",  plot = p2,  width = 9.5, height = 6, dpi = 300)
 
 
 # Combine the three scenario outputs into one long data frame
@@ -187,10 +187,126 @@ to_long <- function(out, scenario) {
 }
 
 scenario_long <- bind_rows(
-  to_long(out_full,      "Full model"),
-  to_long(out_noPred,    "No predators"),
-  to_long(out_noPredDet, "No predators/detritivores")
+  to_long(out_full,      "Root Herbivory"),
+  to_long(out_noHerbivore,    "No Herbivores")
 )
 
-scenario_colors <- c("No predators"              = "blue",
-                     "No predators/detritivores" = "lightgreen")
+scenario_colors <- c("Root Herbivory" = "blue",
+                     "No Herbivores" = "lightgreen")
+
+
+# ---- Fig 1: endpoint (max time) difference from Full model ----
+full_endpoint <- scenario_long %>%
+  filter(Scenario == "Root Herbivory", time == max(time)) %>%
+  select(Pool, full_val = Value)
+
+diff_end <- scenario_long %>%
+  filter(Scenario != "Root Herbivory", time == max(time)) %>%
+  left_join(full_endpoint, by = "Pool") %>%
+  mutate(Diff = Value - full_val)
+
+fig_end <- ggplot(diff_end, aes(x = Scenario, y = Diff, fill = Scenario)) +
+  geom_col(alpha = 0.7) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red", linewidth = 0.8) +
+  facet_wrap(~ Pool, scales = "free_y") +
+  scale_fill_manual(values = scenario_colors) +
+  labs(y = expression(Delta ~ "endpoint pool size"),
+       x = NULL, fill = NULL) +
+  theme_minimal() +
+  theme(legend.position = "top",
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank())
+
+fig_end
+ggsave("fig_end.png",  plot = fig_end,  width = 8, height = 6, dpi = 300)
+
+# ---- Fig 2: whole-trajectory mean difference from Full model ----
+full_mean <- scenario_long %>%
+  filter(Scenario == "Root Herbivory") %>%
+  group_by(Pool) %>%
+  summarise(full_mean = mean(Value), .groups = "drop")
+
+diff_mean <- scenario_long %>%
+  filter(Scenario != "Root Herbivory") %>%
+  group_by(Scenario, Pool) %>%
+  summarise(mean_value = mean(Value), .groups = "drop") %>%
+  left_join(full_mean, by = "Pool") %>%
+  mutate(Diff = mean_value - full_mean)
+
+fig_mean <- ggplot(diff_mean, aes(x = Scenario, y = Diff, fill = Scenario)) +
+  geom_col(alpha = 0.7) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red", linewidth = 0.8) +
+  facet_wrap(~ Pool, scales = "free_y") +
+  scale_fill_manual(values = scenario_colors) +
+  labs(y = expression(Delta ~ "mean pool size"),
+       x = NULL, fill = NULL) +
+  theme_minimal() +
+  theme(legend.position = "top",
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank())
+
+fig_mean
+ggsave("fig_mean.png", plot = fig_mean, width = 8, height = 6, dpi = 300)
+
+
+#effect sizes
+
+# Per-scenario, per-pool summary (endpoint + time-mean)
+summary_df <- scenario_long %>%
+  group_by(Scenario, Pool) %>%
+  summarise(
+    endpoint  = Value[time == max(time)],
+    time_mean = mean(Value),
+    .groups = "drop"
+  )
+
+# Baseline values (Full model)
+baseline <- summary_df %>%
+  filter(Scenario == "Root Herbivory") %>%
+  select(Pool, baseline_end = endpoint, baseline_mean = time_mean)
+
+# Effect sizes for the removal scenarios
+effect_sizes <- summary_df %>%
+  filter(Scenario != "Root Herbivory") %>%
+  left_join(baseline, by = "Pool") %>%
+  mutate(
+    # Endpoint effects
+    delta_end       = endpoint - baseline_end,
+    pct_end         = 100 * delta_end / baseline_end,
+    LRR_end         = log(endpoint / baseline_end),
+    # Time-averaged effects
+    delta_mean      = time_mean - baseline_mean,
+    pct_mean        = 100 * delta_mean / baseline_mean,
+    LRR_mean        = log(time_mean / baseline_mean)
+  ) %>%
+  select(Scenario, Pool,
+         baseline_end, endpoint, delta_end, pct_end, LRR_end,
+         baseline_mean, time_mean, delta_mean, pct_mean, LRR_mean)
+
+effect_sizes
+write.csv(effect_sizes, "effect_sizes.csv", row.names = FALSE)
+
+effect_sizes <- effect_sizes %>%
+  filter(!(Scenario == "No Herbivores" & Pool == "RootHerb"),
+         !(Scenario == "No Herbivores" & Pool == "CWD"))
+
+library(scales)
+
+percent_change <- ggplot(effect_sizes, aes(x = Scenario, y = Pool, fill = pct_mean)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = sprintf("%+.1f%%", pct_mean)), size = 3) +
+  scale_fill_gradient2(
+    low = "#2C7BB6", mid = "white", high = "#D7191C",
+    midpoint = 0,
+    limits = c(-50, 50),     # cap the color scale here
+    oob = squish,            # anything beyond limits gets the extreme color
+    name = "% change\n(time-mean)"
+  ) +
+  labs(x = NULL, y = NULL,
+       title = "Effect of soil animals on soil C pools") +
+  theme_minimal() +
+  theme(panel.grid = element_blank())
+
+percent_change
+
+ggsave("percent_change.png", plot = percent_change, width = 4.5, height = 7, dpi = 300)
