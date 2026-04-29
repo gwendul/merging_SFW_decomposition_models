@@ -24,7 +24,7 @@ parms$wood_mortality = 0
 
 # With herbivores:
 millennial_herbnem = ode(
-  times = seq(1, 365*1500, by = 1),
+  times = seq(1, 365*2000, by = 1),
   y     = init_millennial_state(HerbNem = T),
   func  = millennial_model_herbnem,
   parms = parms
@@ -36,11 +36,11 @@ plot_ode_output(millennial_herbnem,
 head(millennial_herbnem)
 tail(millennial_herbnem)
 
-write.csv(millennial_herbnem, "millennial_herbnem.csv")
+write.csv(millennial_herbnem, "millennial_herbnem_wpred.csv")
 
 
 # End Timepoint/Equilibrium
-times <- seq(1, 365*1500, by = 1)
+times <- seq(1, 365*2000, by = 1)
 
 # looking at the last few years to check for stability
 timeCheck_stable <- tibble(data.frame(millennial_herbnem)) %>%
@@ -59,7 +59,7 @@ timeEND <- as.data.frame(millennial_herbnem) %>%
   select(-time) %>%
   unlist()
 
-write.csv(timeEND, "timeEND_stable_herbivore.csv")
+write.csv(timeEND, "timeEND_stable_herbivore_wpred.csv")
   
 
 # new simulation
@@ -75,7 +75,7 @@ new_herbnem <- ode(
 plot_ode_output(new_herbnem,
                 variable_cols = names(init_millennial_state(HerbNem = T)))
 
-write.csv(new_herbnem, "new_herbnem.csv")
+write.csv(new_herbnem, "new_herbnem_wpred.csv")
 
 
 # Simulate the scenarios (with and without nematodes)
@@ -84,11 +84,11 @@ timeEND2 <- as.data.frame(new_herbnem) %>%
   select(-time) %>%
   unlist()
 
-write.csv(timeEND, "timeEND2_scenarios_herbivore.csv")
-
+write.csv(timeEND, "timeEND2_scenarios_herbivore_wpred.csv")
 
 fullModel <- timeEND2
-noHerbivore    <- replace(timeEND2, "RootHerb", 0) #setting herbivore = 0 
+noPred    <- replace(timeEND2, "Predator", 0) #setting predators = 0 
+noNematode    <- replace(timeEND2, c("Predator", "RootHerb"), 0) #setting herbivore = 0 
 
 # Run 10 year scenarios
 out_full <- ode(y = fullModel,  
@@ -97,15 +97,23 @@ out_full <- ode(y = fullModel,
                 parms = parms
                 )
 
-write.csv(out_full, "out_full.csv")
+write.csv(out_full, "out_full_wpred.csv")
 
-out_noHerbivore <- ode(y = noHerbivore,
+out_noNematode <- ode(y = noNematode,
                        times = times2, 
                        func = millennial_model_herbnem, 
                        parms = parms
                        )
 
-write.csv(out_noHerbivore, "out_noHerbivore.csv")
+write.csv(out_noNematode, "out_noNematode.csv")
+
+out_noPred <- ode(y = noPred, 
+                  times = times2, 
+                  func = millennial_model_herbnem, 
+                  parms = parms
+                  )
+
+write.csv(out_noPred, "out_noPred.csv")
 
 
 # Run the three scenarios - 100 years
@@ -117,20 +125,26 @@ out_full100 <- ode(y = fullModel,
                    parms = parms
                    )
 
-write.csv(out_full100, "out_full100.csv")
+write.csv(out_full100, "out_full_wpred_100.csv")
 
-out_noHerbivore100 <- ode(y = noHerbivore,
+out_noNematode100 <- ode(y = noNematode,
                           times = times3,
                           func = millennial_model_herbnem, 
                           parms = parms
                           )
 
-write.csv(out_noHerbivore100, "out_noHerbivore100.csv")
+write.csv(out_noNematode100, "out_noNematode_100.csv")
+
+out_noPred100 <- ode(y = noPred, 
+                  times = times3, 
+                  func = millennial_model_herbnem, 
+                  parms = parms
+)
+
+write.csv(out_noPred100, "out_noPred_100.csv")
 
 
-
-### FROM JANEY ##
-vars <- colnames(out_full)[2:14]
+vars <- colnames(out_full)[2:15]
 
 
 # Helper to reshape an ode output the same way the function does internally
@@ -148,15 +162,18 @@ p <- plot_ode_output(out_full, variable_cols = vars)
 
 # other two scenarios
 p <- p +
-  geom_line(data = to_long(out_full, "Root Herbivory"), 
+  geom_line(data = to_long(out_full, "Full Food Web"), 
             aes(time, value, color = scenario)) +
-  geom_line(data = to_long(out_noHerbivore, "No Herbivores"),
+  geom_line(data = to_long(out_noPred, "No Predators"),
             aes(time, value, color = scenario)) +
-  scale_color_manual(values = c("Root Herbivory" = "black",
-                                "No Herbivores"   = "blue")) +
+  geom_line(data = to_long(out_noNematode, "No Nematodes"),
+            aes(time, value, color = scenario)) +
+  scale_color_manual(values = c("Full Food Web" = "black",
+                                "No Predators"   = "blue",
+                                "No Nematodes" = "lightgreen")) +
   labs(color = "Scenario")
 p
-ggsave("simulations.png",  plot = p,  width = 9.5, height = 6, dpi = 300)
+ggsave("simulations_fullfoodweb.png",  plot = p,  width = 9.5, height = 6, dpi = 300)
 
 #plot the 100 year simulation scenarios, but 
 # Keep only one day per year (default: day 1)
@@ -167,16 +184,19 @@ keep_yearly <- function(out, day_of_year = 1) {
 p2 <- plot_ode_output(keep_yearly(out_full100), variable_cols = vars)
 
 p2 <- p2 +
-  geom_line(data = to_long(keep_yearly(out_full100), "Root Herbivory"), 
+  geom_line(data = to_long(keep_yearly(out_full100), "Full Food Web"), 
             aes(time, value, color = scenario)) +
-  geom_line(data = to_long(keep_yearly(out_noHerbivore100), "No Herbivores"),
+  geom_line(data = to_long(keep_yearly(out_noPred100), "No Predators"),
             aes(time, value, color = scenario)) +
-  scale_color_manual(values = c("Root Herbivory" = "black",
-                                "No Herbivores"   = "blue")) +
+  geom_line(data = to_long(keep_yearly(out_noNematode100), "No Nematodes"),
+            aes(time, value, color = scenario)) +
+  scale_color_manual(values = c("Full Food Web" = "black",
+                                "No Predators"   = "blue",
+                                "No Nematodes" = "lightgreen")) +
   labs(color = "Scenario")
 p2
 
-ggsave("simulations_100yrs.png",  plot = p2,  width = 9.5, height = 6, dpi = 300)
+ggsave("simulations_fullfoodweb_100yrs.png",  plot = p2,  width = 9.5, height = 6, dpi = 300)
 
 
 # Combine the three scenario outputs into one long data frame
@@ -187,21 +207,23 @@ to_long <- function(out, scenario) {
 }
 
 scenario_long <- bind_rows(
-  to_long(out_full,      "Root Herbivory"),
-  to_long(out_noHerbivore,    "No Herbivores")
+  to_long(out_full,      "Full Food Web"),
+  to_long(out_noNematode,    "No Nematodes"),
+  to_long(out_noPred, "No Predators")
 )
 
-scenario_colors <- c("Root Herbivory" = "blue",
-                     "No Herbivores" = "lightgreen")
+scenario_colors <- c("Full Food Web" = "black",
+                     "No Predators"   = "blue",
+                     "No Nematodes" = "lightgreen")
 
 
 # ---- Fig 1: endpoint (max time) difference from Full model ----
 full_endpoint <- scenario_long %>%
-  filter(Scenario == "Root Herbivory", time == max(time)) %>%
+  filter(Scenario == "Full Food Web", time == max(time)) %>%
   select(Pool, full_val = Value)
 
 diff_end <- scenario_long %>%
-  filter(Scenario != "Root Herbivory", time == max(time)) %>%
+  filter(Scenario != "Full Food Web", time == max(time)) %>%
   left_join(full_endpoint, by = "Pool") %>%
   mutate(Diff = Value - full_val)
 
@@ -218,16 +240,16 @@ fig_end <- ggplot(diff_end, aes(x = Scenario, y = Diff, fill = Scenario)) +
         axis.ticks.x = element_blank())
 
 fig_end
-ggsave("fig_end.png",  plot = fig_end,  width = 8, height = 6, dpi = 300)
+ggsave("fig_end_fullfoodweb.png",  plot = fig_end,  width = 8, height = 6, dpi = 300)
 
 # ---- Fig 2: whole-trajectory mean difference from Full model ----
 full_mean <- scenario_long %>%
-  filter(Scenario == "Root Herbivory") %>%
+  filter(Scenario == "Full Food Web") %>%
   group_by(Pool) %>%
   summarise(full_mean = mean(Value), .groups = "drop")
 
 diff_mean <- scenario_long %>%
-  filter(Scenario != "Root Herbivory") %>%
+  filter(Scenario != "Full Food Web") %>%
   group_by(Scenario, Pool) %>%
   summarise(mean_value = mean(Value), .groups = "drop") %>%
   left_join(full_mean, by = "Pool") %>%
@@ -246,7 +268,7 @@ fig_mean <- ggplot(diff_mean, aes(x = Scenario, y = Diff, fill = Scenario)) +
         axis.ticks.x = element_blank())
 
 fig_mean
-ggsave("fig_mean.png", plot = fig_mean, width = 8, height = 6, dpi = 300)
+ggsave("fig_mean_fullfoodweb.png", plot = fig_mean, width = 8, height = 6, dpi = 300)
 
 
 #effect sizes
@@ -262,12 +284,12 @@ summary_df <- scenario_long %>%
 
 # Baseline values (Full model)
 baseline <- summary_df %>%
-  filter(Scenario == "Root Herbivory") %>%
+  filter(Scenario == "Full Food Web") %>%
   select(Pool, baseline_end = endpoint, baseline_mean = time_mean)
 
 # Effect sizes for the removal scenarios
 effect_sizes <- summary_df %>%
-  filter(Scenario != "Root Herbivory") %>%
+  filter(Scenario != "Full Food Web") %>%
   left_join(baseline, by = "Pool") %>%
   mutate(
     # Endpoint effects
@@ -284,11 +306,11 @@ effect_sizes <- summary_df %>%
          baseline_mean, time_mean, delta_mean, pct_mean, LRR_mean)
 
 effect_sizes
-write.csv(effect_sizes, "effect_sizes.csv", row.names = FALSE)
+write.csv(effect_sizes, "effect_sizes_fullfoodweb.csv", row.names = FALSE)
 
 effect_sizes <- effect_sizes %>%
-  filter(!(Scenario == "No Herbivores" & Pool == "RootHerb"),
-         !(Scenario == "No Herbivores" & Pool == "CWD"))
+  filter(!(Scenario == "No Predators" & Pool %in% c("Predator", "CWD")),
+         !(Scenario == "No Nematodes" & Pool %in% c("Predator", "RootHerb", "CWD")))
 
 library(scales)
 
@@ -309,4 +331,4 @@ percent_change <- ggplot(effect_sizes, aes(x = Scenario, y = Pool, fill = pct_me
 
 percent_change
 
-ggsave("percent_change.png", plot = percent_change, width = 4.5, height = 7, dpi = 300)
+ggsave("percent_change_fullfoodweb.png", plot = percent_change, width = 4.5, height = 7, dpi = 300)
