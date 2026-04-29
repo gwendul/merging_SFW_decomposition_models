@@ -43,7 +43,8 @@ init_millennial_state <- function(Detritivore = F, Earthworm = F, HerbNem = F) {
           A       = 1000,
           M       = 3000,
           B       = 40,
-          RootHerb = 0.001
+          RootHerb = 0.001,
+          Predator = 0.0001
         )
       }else{
         c(

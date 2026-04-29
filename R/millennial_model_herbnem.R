@@ -237,7 +237,10 @@ millennial_model_herbnem <- function(time, state, parms){
     
     # Root herbivores:
     dRootHerb <- p_rootherb*a_rootherb*ConsumpRootHerb - DeathRootHerb
-      
+    
+    # Predatory Nematodes
+    dPredators <- p_predator*a_predator*c_predator*RootHerb*Predator - d_predator*Predator^2 - E_predator*Predator  
+    
     # --------------------------------------------------
     # Return ODEs + diagnostics
     # --------------------------------------------------
@@ -246,7 +249,7 @@ millennial_model_herbnem <- function(time, state, parms){
         dC_shoot, dC_root,
         dLitter, dCWD, dOrganic, dDOM, dMIC,
         dP, dL, dA, dM, dB,
-        dRootHerb
+        dRootHerb, dPredators
       )
     )
   })

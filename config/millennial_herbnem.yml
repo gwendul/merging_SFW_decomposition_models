@@ -40,5 +40,12 @@ d_rootherb: 4
 a_rootherb: 0.4
 p_rootherb: 0.37 # default of 1
 E_root_herb: 0 # default of 0
-k_exudate_intercept: 0.00002740
-k_exudate_slope: 0
+k_exudate_intercept: 0.00002740  #default of 0.00002740 #JY slope: 0.946
+k_exudate_slope: 0.013 #default of 0 
+
+# ------- Predatory Nematodes ---------
+d_predator: 3
+a_predator: 0.4
+p_predator: 0.37
+E_predator: 0
+c_predator: 0.0168
